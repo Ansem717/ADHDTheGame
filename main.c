@@ -14,6 +14,7 @@
 
 #include "cprocessing.h"
 #include "main.h"
+#include <math.h>
 #define DEBUG 0
 
 float WIDTH, HEIGHT;
@@ -41,6 +42,8 @@ Game GAMES[4];
 
 float margin, padding;
 
+float paddleThetaL, paddleThetaR;
+
 void fill(CP_Color c) {
 	CP_Settings_Fill(c);
 }
@@ -64,6 +67,7 @@ void settingsInit(void) {
 	CP_Settings_ImageMode(CP_POSITION_CENTER);
 	CP_Settings_RectMode(CP_POSITION_CORNER);
 	CP_Settings_TextAlignment(CP_TEXT_ALIGN_H_CENTER, CP_TEXT_ALIGN_V_MIDDLE);
+	CP_Settings_LineCapMode(CP_LINE_CAP_ROUND);
 
 	fill(WHITE);
 	stroke(BLACK, 2);
@@ -73,6 +77,9 @@ void settingsInit(void) {
 }
 
 void variablesInit(void) {
+	/**************\
+	| SYSTEM INITS |
+	\**************/
 	margin = 100.0f;
 	padding = 30.0f;
 
@@ -96,24 +103,39 @@ void variablesInit(void) {
 	CONTROLLERS[3].keyLeft = KEY_L;
 	CONTROLLERS[3].keyRight = KEY_SEMICOLON;
 
+	/****************\
+	| BREAKOUT INITS |
+	\****************/
 	GAMES[0].id = 0;
 	GAMES[0].cont = CONTROLLERS[0];
 	GAMES[0].col = RED;
 	GAMES[0].active = TRUE;
-	GAMES[0].play = &laneDriver;
+	GAMES[0].play = &breakout;
 
+	/***************\
+	| PINBALL INITS |
+	\***************/
 	GAMES[1].id = 1;
 	GAMES[1].cont = CONTROLLERS[1];
 	GAMES[1].col = GREEN;
 	GAMES[1].active = TRUE;
 	GAMES[1].play = &pinball;
 
+	paddleThetaL = 120;
+	paddleThetaR = 120;
+
+	/*******************\
+	| LANE DRIVER INITS |
+	\*******************/
 	GAMES[2].id = 2;
 	GAMES[2].cont = CONTROLLERS[2];
 	GAMES[2].col = BLUE;
 	GAMES[2].active = 1;
-	GAMES[2].play = &tronRacing;
+	GAMES[2].play = &laneDriver;
 
+	/**********************\
+	| RAFT COLLECTOR INITS |
+	\**********************/
 	GAMES[3].id = 3;
 	GAMES[3].cont = CONTROLLERS[3];
 	GAMES[3].col = YELLOW;
@@ -150,7 +172,7 @@ void gameUpdate(void) {
 	}
 }
 
-void laneDriver(Game g) {
+void breakout(Game g) {
 
 }
 
@@ -163,22 +185,31 @@ void pinball(Game g) {
 	CP_Graphics_DrawCircle(g.x + g.w * 3 / 4, g.y + g.h * 4 / 16, bouncerSize);
 	CP_Graphics_DrawCircle(g.x + g.w * 2 / 4, g.y + g.h * 7 / 16, bouncerSize);
 
-	//Paddles?
-	stroke(g.col, 40);
-	CP_Settings_LineCapMode(CP_LINE_CAP_ROUND);
+	//PADDLES
+	stroke(BLACK, 40);
 	CP_Graphics_DrawLine(
 		g.x + padding / 2, 
 		g.y + g.h * 12 / 16, 
-		g.x + g.w * 3 / 8, 
-		g.y + g.h * 14 / 16
+		g.x + padding / 2 + (g.w * 3 / 8) * sin(CP_Math_Radians(paddleThetaL)),
+		g.y + g.h * 12 / 16 + (g.h * 2 / 16) * -cos(CP_Math_Radians(paddleThetaL))
+	);
+
+	CP_Graphics_DrawLine(
+		g.x + g.w - padding / 2,
+		g.y + g.h * 12 / 16,
+		g.x + g.w - padding / 2 - (g.w * 3 / 8) * sin(CP_Math_Radians(paddleThetaR)),
+		g.y + g.h * 12 / 16 + (g.h * 2 / 16) * -cos(CP_Math_Radians(paddleThetaR))
 	);
 
 	stroke(BLACK, 2);
 	fill(GRAY);
 	//CP_Graphics_DrawCircle(g.x + g.w/2, g.y + g.h/2, 50);
+
+	if (CP_Input_KeyDown(g.cont.keyLeft)) paddleThetaL -= 5;
+	if (CP_Input_KeyDown(g.cont.keyRight)) paddleThetaR -= 5;
 }
 
-void tronRacing(Game g) {
+void laneDriver(Game g) {
 
 }
 
@@ -189,13 +220,14 @@ void raftCollector(Game g) {
 void gameExit(void) { 
 }
 
-void terminateController(void) {
+void adminController(void) {
 	if (CP_Input_KeyReleased(KEY_ESCAPE) || CP_Input_KeyReleased(KEY_Q)) CP_Engine_Terminate();
+	if (CP_Input_KeyReleased(KEY_R)) CP_Engine_SetNextGameStateForced(gameInit, gameUpdate, gameExit);
 }
 
 int main(void)
 {
-	CP_Engine_SetPostUpdateFunction(terminateController);
+	CP_Engine_SetPostUpdateFunction(adminController);
 	CP_Engine_SetNextGameState(gameInit, gameUpdate, gameExit);
 	CP_Engine_Run();
 	return 0;
