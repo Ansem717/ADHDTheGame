@@ -26,10 +26,14 @@ typedef struct {
 
 typedef struct {
 	int id;
+	float x;
+	float y;
+	float w;
+	float h;
 	Controller cont;
 	CP_Color col;
 	CP_BOOL active;
-	FunctionPtr play;
+	void (* play)(Game);
 } Game;
 
 Controller CONTROLLERS[4];
@@ -48,7 +52,7 @@ void stroke(CP_Color c, float w) {
 
 void settingsInit(void) {
 #if DEBUG
-	CP_System_SetWindowSize(900, 900);
+	CP_System_SetWindowSize(1440, 900);
 #else
 	CP_System_Fullscreen();
 #endif
@@ -70,7 +74,7 @@ void settingsInit(void) {
 
 void variablesInit(void) {
 	margin = 100.0f;
-	padding = 40.0f;
+	padding = 30.0f;
 
 	BLACK = CP_Color_Create(0, 0, 0, 255);
 	GRAY = CP_Color_Create(70, 70, 70, 255);
@@ -95,7 +99,7 @@ void variablesInit(void) {
 	GAMES[0].id = 0;
 	GAMES[0].cont = CONTROLLERS[0];
 	GAMES[0].col = RED;
-	GAMES[0].active = FALSE;
+	GAMES[0].active = TRUE;
 	GAMES[0].play = &laneDriver;
 
 	GAMES[1].id = 1;
@@ -107,13 +111,13 @@ void variablesInit(void) {
 	GAMES[2].id = 2;
 	GAMES[2].cont = CONTROLLERS[2];
 	GAMES[2].col = BLUE;
-	GAMES[2].active = FALSE;
+	GAMES[2].active = 1;
 	GAMES[2].play = &tronRacing;
 
 	GAMES[3].id = 3;
 	GAMES[3].cont = CONTROLLERS[3];
 	GAMES[3].col = YELLOW;
-	GAMES[3].active = FALSE;
+	GAMES[3].active = 1;
 	GAMES[3].play = &raftCollector;
 
 }
@@ -136,30 +140,53 @@ void gameUpdate(void) {
 		if (g.active) {
 			fill(LIGHT_GRAY);
 			stroke(g.col, padding);
-			CP_Graphics_DrawRect(xStep * g.id, 0, gameWidth, HEIGHT);
-			g.play();
+			g.x = xStep * g.id + padding / 2;
+			g.y = padding / 2;
+			g.w = gameWidth;
+			g.h = HEIGHT - padding;
+			CP_Graphics_DrawRect(g.x, g.y, g.w, g.h);
+			g.play(g);
 		}
 	}
 }
 
-void laneDriver() {
+void laneDriver(Game g) {
 
 }
 
-void pinball() {
-	CP_Graphics_DrawCircle(500, 500, 100);
+void pinball(Game g) {
+	stroke(BLACK, 4);
+	fill(g.col);
+	//BOUNCERS
+	float bouncerSize = 80;
+	CP_Graphics_DrawCircle(g.x + g.w * 1 / 4, g.y + g.h * 4 / 16, bouncerSize);
+	CP_Graphics_DrawCircle(g.x + g.w * 3 / 4, g.y + g.h * 4 / 16, bouncerSize);
+	CP_Graphics_DrawCircle(g.x + g.w * 2 / 4, g.y + g.h * 7 / 16, bouncerSize);
+
+	//Paddles?
+	stroke(g.col, 40);
+	CP_Settings_LineCapMode(CP_LINE_CAP_ROUND);
+	CP_Graphics_DrawLine(
+		g.x + padding / 2, 
+		g.y + g.h * 12 / 16, 
+		g.x + g.w * 3 / 8, 
+		g.y + g.h * 14 / 16
+	);
+
+	stroke(BLACK, 2);
+	fill(GRAY);
+	//CP_Graphics_DrawCircle(g.x + g.w/2, g.y + g.h/2, 50);
 }
 
-void tronRacing() {
+void tronRacing(Game g) {
 
 }
 
-void raftCollector() {
+void raftCollector(Game g) {
 
 }
 
 void gameExit(void) { 
-
 }
 
 void terminateController(void) {

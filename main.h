@@ -1,4 +1,4 @@
-void laneDriver(void);
-void pinball(void);
-void tronRacing(void);
-void raftCollector(void);
+void laneDriver(Game);
+void pinball(Game);
+void tronRacing(Game);
+void raftCollector(Game);
