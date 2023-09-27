@@ -44,13 +44,15 @@ Controller CONTROLLERS[4];
 Game GAMES[4];
 
 float margin, padding;
+char debugBuffer[50] = { 0 };
 
 CP_Vector bouncerCenter[4];
-float bouncerSize, bouncerPower;
+float bouncerRadius, bouncerPower;
 float paddleLTheta, paddleRTheta, paddleMaxTheta, paddleMinTheta;
 int paddleLTriggered, paddleRTriggered;
 float paddleAccSpeed, paddleDecSpeed;
 CP_Vector pinballPos, pinballVel;
+float pinballRadius;
 float gravity, terminalVelocity;
 
 void fill(CP_Color c) {
@@ -65,7 +67,7 @@ void stroke(CP_Color c, float w) {
 void settingsInit(void) {
 #if DEBUG
 	CP_System_SetWindowSize(1440, 900);
-	CP_System_SetFrameRate(10);
+	//CP_System_SetFrameRate(10);
 #else
 	CP_System_Fullscreen();
 #endif
@@ -133,7 +135,7 @@ void variablesInit(void) {
 	GAMES[1].init = 0;
 	GAMES[1].play = &pinball;
 
-	bouncerSize = 80;
+	bouncerRadius = 20;
 	bouncerPower = -10;
 
 	paddleLTheta = 120;
@@ -145,7 +147,8 @@ void variablesInit(void) {
 	paddleDecSpeed = 5;
 
 	gravity = 0.5;
-	terminalVelocity = 8;
+	terminalVelocity = 13;
+	pinballRadius = 13;
 	pinballPos = CP_Vector_Zero();
 	pinballVel = CP_Vector_Zero();
 
@@ -206,18 +209,19 @@ void breakout(Game g) {
 void pinball(Game* g) {
 	if (g->init == 0) {
 		//BOUNCERS
-		bouncerCenter[0].x = g->x + g->w * 1 / 4;
+		bouncerCenter[0].x = g->x + g->w * 5 / 16;
 		bouncerCenter[0].y = g->y + g->h * 6 / 32;
-		bouncerCenter[1].x = g->x + g->w * 3 / 4;
+		bouncerCenter[1].x = g->x + g->w * 11 / 16;
 		bouncerCenter[1].y = g->y + g->h * 6 / 32;
 		bouncerCenter[2].x = g->x + g->w * 2 / 4;
-		bouncerCenter[2].y = g->y + g->h * 12 / 32;
+		bouncerCenter[2].y = g->y + g->h * 11 / 32;
+
 		bouncerCenter[3].x = g->x + g->w * 8 / 16;
 		bouncerCenter[3].y = g->y + g->h * 77 / 128;
 
 		//PINBALL
-		pinballPos.x = g->x + g->w * 1 / 2 + 10;
-		pinballPos.y = g->y + g->h * 1 / 6;
+		pinballPos.x = g->x + CP_Random_RangeFloat(pinballRadius, g->w - pinballRadius);
+		pinballPos.y = g->y + g->h * 1 / 10;
 
 		g->init = 1;
 	} else {
@@ -225,7 +229,7 @@ void pinball(Game* g) {
 		stroke(BLACK, 4);
 		fill(g->col);
 		for (int i = 0; i < 3; i++) {
-			CP_Graphics_DrawCircle(bouncerCenter[i].x, bouncerCenter[i].y, bouncerSize);
+			CP_Graphics_DrawCircle(bouncerCenter[i].x, bouncerCenter[i].y, bouncerRadius * 2);
 		}
 		CP_Graphics_DrawTriangle(
 			g->x + g->w * 8 / 16,
@@ -264,34 +268,35 @@ void pinball(Game* g) {
 		//PINBALL
 		stroke(BLACK, 2);
 		fill(GRAY);
-		float circleRadius = 15;
-		CP_Graphics_DrawCircle(pinballPos.x, pinballPos.y, circleRadius * 2);
+		CP_Graphics_DrawCircle(pinballPos.x, pinballPos.y, pinballRadius * 2);
 		for (int i = 0; i < 3; i++) {
 			float dist = CP_Vector_Distance(pinballPos, bouncerCenter[i]);
 			float oppLen = bouncerCenter[i].y - pinballPos.y;
 			float adjLen = bouncerCenter[i].x - pinballPos.x;
-			float hypo = sqrt(oppLen * oppLen + adjLen * adjLen);
-			float theta = acos(adjLen / hypo);
+			float theta = atan2f(oppLen, adjLen);
 
-			char buffer[50] = { 0 };
-			sprintf_s(buffer, _countof(buffer), "%.2f", pinballVel.y);
-			fill(LIGHT_GRAY);
-			CP_Graphics_DrawRect(WIDTH * 1 / 6, HEIGHT * 1 / 3, WIDTH * 1 / 7, HEIGHT * 1 / 5);
-			fill(BLACK);
-			CP_Font_DrawText(buffer, WIDTH * 1 / 5, HEIGHT / 2);
-
-			//CP_Graphics_DrawTriangle(pinballPos.x, pinballPos.y, bouncerCenter[i].x, bouncerCenter[i].y, bouncerCenter[i].x, pinballPos.y);
-			if (dist < circleRadius + (bouncerSize / 2)) {
+			if (dist < pinballRadius + bouncerRadius) {
 				pinballVel.y = bouncerPower * sin(theta);
 				pinballVel.x = bouncerPower * cos(theta);
-
 			}
 		}
 
-		if (pinballPos.x < g->x + padding / 2 + circleRadius ||
-			pinballPos.x > g->x + g->w - padding / 2 - circleRadius) pinballVel.x *= -1;
-		if (pinballPos.y < g->y + padding / 2 + circleRadius ||
-			pinballPos.y > g->y + g->h - padding / 2 - circleRadius) pinballVel.y *= -1;
+		if (pinballPos.x < g->x + padding / 2 + pinballRadius) {
+			pinballVel.x *= -1;
+			pinballPos.x += (g->x + padding / 2 + pinballRadius) - pinballPos.x + 1;
+		}
+		if (pinballPos.x > g->x + g->w - padding / 2 - pinballRadius) {
+			pinballVel.x *= -1;
+			pinballPos.x -= pinballPos.x - (g->x + g->w - padding / 2 - pinballRadius) + 1;
+		}
+		if (pinballPos.y < g->y + padding / 2 + pinballRadius) {
+			pinballVel.y *= -1; 
+			pinballVel.y += (g->y + padding / 2 + pinballRadius) - pinballPos.y + 1;
+		}
+		if (pinballPos.y > g->y + g->h - padding / 2 - pinballRadius) {
+			pinballVel.y *= -1;
+			pinballPos.y -= pinballPos.y - (g->y + g->h - padding / 2 - pinballRadius) + 1;
+		}
 
 		pinballPos = CP_Vector_Add(pinballPos, pinballVel);
 		if (pinballVel.y <= terminalVelocity) {
@@ -299,13 +304,6 @@ void pinball(Game* g) {
 		} else {
 			pinballVel.y = terminalVelocity;
 		}
-
-		/*if (pinballVel.x < 0) {
-			pinballVel.x += gravity;
-		} else if (pinballVel.x > 0) {
-			pinballVel.x -= gravity;
-		}*/
-
 
 		if (CP_Input_KeyTriggered(g->cont.keyLeft) && paddleLTheta >= paddleMaxTheta) paddleLTriggered = 1;
 		if (CP_Input_KeyTriggered(g->cont.keyRight) && paddleRTheta >= paddleMaxTheta) paddleRTriggered = 1;
