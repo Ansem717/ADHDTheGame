@@ -33,8 +33,8 @@ typedef struct {
 	float h;
 	Controller cont;
 	CP_Color col;
-	CP_BOOL active;
-	CP_BOOL init;
+	int active;
+	int init;
 	void (*play)(Game);
 } Game;
 
@@ -46,7 +46,7 @@ float margin, padding;
 CP_Vector bouncerCenter[4];
 float bouncerSize;
 float paddleLTheta, paddleRTheta, paddleMaxTheta, paddleMinTheta;
-CP_BOOL paddleLTriggered, paddleRTriggered;
+int paddleLTriggered, paddleRTriggered;
 float paddleAccSpeed, paddleDecSpeed;
 CP_Vector pinballPos, pinballVel;
 float gravity;
@@ -116,8 +116,8 @@ void variablesInit(void) {
 	GAMES[0].id = 0;
 	GAMES[0].cont = CONTROLLERS[0];
 	GAMES[0].col = RED;
-	GAMES[0].active = FALSE;
-	GAMES[0].init = FALSE;
+	GAMES[0].active = 1;
+	GAMES[0].init = 0;
 	GAMES[0].play = &breakout;
 
 	/***************\
@@ -126,16 +126,16 @@ void variablesInit(void) {
 	GAMES[1].id = 1;
 	GAMES[1].cont = CONTROLLERS[1];
 	GAMES[1].col = GREEN;
-	GAMES[1].active = TRUE;
-	GAMES[1].init = FALSE;
+	GAMES[1].active = 1;
+	GAMES[1].init = 0;
 	GAMES[1].play = &pinball;
 
 	paddleLTheta = 120;
 	paddleRTheta = 120;
 	paddleMaxTheta = 120;
 	paddleMinTheta = 60;
-	paddleLTriggered = paddleRTriggered = FALSE;
-	paddleAccSpeed = 16; 
+	paddleLTriggered = paddleRTriggered = 0;
+	paddleAccSpeed = 16;
 	paddleDecSpeed = 5;
 
 	gravity = -1;
@@ -148,8 +148,8 @@ void variablesInit(void) {
 	GAMES[2].id = 2;
 	GAMES[2].cont = CONTROLLERS[2];
 	GAMES[2].col = BLUE;
-	GAMES[2].active = FALSE;
-	GAMES[2].init = FALSE;
+	GAMES[2].active = 1;
+	GAMES[2].init = 0;
 	GAMES[2].play = &laneDriver;
 
 	/**********************\
@@ -158,8 +158,8 @@ void variablesInit(void) {
 	GAMES[3].id = 3;
 	GAMES[3].cont = CONTROLLERS[3];
 	GAMES[3].col = YELLOW;
-	GAMES[3].active = FALSE;
-	GAMES[3].init = FALSE;
+	GAMES[3].active = 1;
+	GAMES[3].init = 0;
 	GAMES[3].play = &raftCollector;
 
 }
@@ -178,16 +178,16 @@ void gameUpdate(void) {
 
 	for (int i = 0; i < 4; i++) {
 		//for each GAME g
-		Game g = GAMES[i];
-		if (g.active) {
+		Game* g = &GAMES[i];
+		if (g->active) {
 			fill(LIGHT_GRAY);
-			stroke(g.col, padding);
-			g.x = xStep * g.id + padding / 2;
-			g.y = padding / 2;
-			g.w = gameWidth;
-			g.h = HEIGHT - padding;
-			CP_Graphics_DrawRect(g.x, g.y, g.w, g.h);
-			g.play(&g);
+			stroke(g->col, padding);
+			(*g).x = xStep * g->id + padding / 2;
+			g->y = padding / 2;
+			g->w = gameWidth;
+			g->h = HEIGHT - padding;
+			CP_Graphics_DrawRect(g->x, g->y, g->w, g->h);
+			g->play(&GAMES[i]);
 		}
 	}
 }
@@ -197,7 +197,7 @@ void breakout(Game g) {
 }
 
 void pinball(Game* g) {
-	if (g->init == FALSE) {
+	if (g->init == 0) {
 		//BOUNCERS
 		bouncerSize = 80;
 		bouncerCenter[0].x = g->x + g->w * 1 / 4;
@@ -213,7 +213,7 @@ void pinball(Game* g) {
 		pinballPos.x = g->x + g->w * 1 / 2;
 		pinballPos.y = g->y + g->h * 1 / 4;
 
-		g->init = TRUE;
+		g->init = 1;
 	} else {
 		//BOUNCERS
 		stroke(BLACK, 4);
@@ -233,11 +233,11 @@ void pinball(Game* g) {
 		//PADDLES
 		stroke(BLACK, 40);
 		if (paddleLTriggered) {
-			if (paddleLTheta > paddleMinTheta) { paddleLTheta -= paddleAccSpeed; } else { paddleLTriggered = FALSE; }
+			if (paddleLTheta > paddleMinTheta) { paddleLTheta -= paddleAccSpeed; } else { paddleLTriggered = 0; }
 		} else if (paddleLTheta < paddleMaxTheta) paddleLTheta += paddleDecSpeed;
 
 		if (paddleRTriggered) {
-			if (paddleRTheta > paddleMinTheta) { paddleRTheta -= paddleAccSpeed; } else { paddleRTriggered = FALSE; }
+			if (paddleRTheta > paddleMinTheta) { paddleRTheta -= paddleAccSpeed; } else { paddleRTriggered = 0; }
 		} else if (paddleRTheta < paddleMaxTheta) paddleRTheta += paddleDecSpeed;
 
 		CP_Graphics_DrawLine(
@@ -262,8 +262,8 @@ void pinball(Game* g) {
 		pinballPos = CP_Vector_Add(pinballPos, pinballVel);
 
 
-		if (CP_Input_KeyTriggered(g->cont.keyLeft) && paddleLTheta >= paddleMaxTheta) paddleLTriggered = TRUE;
-		if (CP_Input_KeyTriggered(g->cont.keyRight) && paddleRTheta >= paddleMaxTheta) paddleRTriggered = TRUE;
+		if (CP_Input_KeyTriggered(g->cont.keyLeft) && paddleLTheta >= paddleMaxTheta) paddleLTriggered = 1;
+		if (CP_Input_KeyTriggered(g->cont.keyRight) && paddleRTheta >= paddleMaxTheta) paddleRTriggered = 1;
 	}
 }
 
