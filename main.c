@@ -34,7 +34,7 @@ typedef struct {
 	Controller cont;
 	CP_Color col;
 	CP_BOOL active;
-	void (* play)(Game);
+	void (*play)(Game);
 } Game;
 
 Controller CONTROLLERS[4];
@@ -42,7 +42,10 @@ Game GAMES[4];
 
 float margin, padding;
 
-float paddleThetaL, paddleThetaR;
+float paddleLTheta, paddleRTheta, paddleMaxTheta, paddleMinTheta;
+CP_BOOL paddleLTriggered, paddleRTriggered;
+float paddleAccSpeed, paddleDecSpeed;
+
 
 void fill(CP_Color c) {
 	CP_Settings_Fill(c);
@@ -121,8 +124,13 @@ void variablesInit(void) {
 	GAMES[1].active = TRUE;
 	GAMES[1].play = &pinball;
 
-	paddleThetaL = 120;
-	paddleThetaR = 120;
+	paddleLTheta = 120;
+	paddleRTheta = 120;
+	paddleMaxTheta = 120;
+	paddleMinTheta = 60;
+	paddleLTriggered = paddleRTriggered = FALSE;
+	paddleAccSpeed = 16; 
+	paddleDecSpeed = 4;
 
 	/*******************\
 	| LANE DRIVER INITS |
@@ -147,9 +155,9 @@ void variablesInit(void) {
 void gameInit(void) {
 	variablesInit();
 	settingsInit();
-}  
+}
 
-void gameUpdate(void) { 
+void gameUpdate(void) {
 	CP_Graphics_ClearBackground(BLACK);
 	CP_Settings_Translate(margin, 0);
 
@@ -187,26 +195,35 @@ void pinball(Game g) {
 
 	//PADDLES
 	stroke(BLACK, 40);
+
+	if (paddleLTriggered) {
+		if (paddleLTheta > paddleMinTheta) { paddleLTheta -= paddleAccSpeed; } else { paddleLTriggered = FALSE; }
+	} else if (paddleLTheta < paddleMaxTheta) paddleLTheta += paddleDecSpeed;
+
+	if (paddleRTriggered) {
+		if (paddleRTheta > paddleMinTheta) { paddleRTheta -= paddleAccSpeed; } else { paddleRTriggered = FALSE; }
+	} else if (paddleRTheta < paddleMaxTheta) paddleRTheta += paddleDecSpeed;
+
 	CP_Graphics_DrawLine(
-		g.x + padding / 2, 
-		g.y + g.h * 12 / 16, 
-		g.x + padding / 2 + (g.w * 3 / 8) * sin(CP_Math_Radians(paddleThetaL)),
-		g.y + g.h * 12 / 16 + (g.h * 2 / 16) * -cos(CP_Math_Radians(paddleThetaL))
+		g.x + padding / 2,
+		g.y + g.h * 12 / 16,
+		g.x + padding / 2 + (g.w * 3 / 8) * sin(CP_Math_Radians(paddleLTheta)),
+		g.y + g.h * 12 / 16 + (g.h * 2 / 16) * -cos(CP_Math_Radians(paddleLTheta))
 	);
 
 	CP_Graphics_DrawLine(
 		g.x + g.w - padding / 2,
 		g.y + g.h * 12 / 16,
-		g.x + g.w - padding / 2 - (g.w * 3 / 8) * sin(CP_Math_Radians(paddleThetaR)),
-		g.y + g.h * 12 / 16 + (g.h * 2 / 16) * -cos(CP_Math_Radians(paddleThetaR))
+		g.x + g.w - padding / 2 - (g.w * 3 / 8) * sin(CP_Math_Radians(paddleRTheta)),
+		g.y + g.h * 12 / 16 + (g.h * 2 / 16) * -cos(CP_Math_Radians(paddleRTheta))
 	);
 
 	stroke(BLACK, 2);
 	fill(GRAY);
 	//CP_Graphics_DrawCircle(g.x + g.w/2, g.y + g.h/2, 50);
 
-	if (CP_Input_KeyDown(g.cont.keyLeft)) paddleThetaL -= 5;
-	if (CP_Input_KeyDown(g.cont.keyRight)) paddleThetaR -= 5;
+	if (CP_Input_KeyTriggered(g.cont.keyLeft) && paddleLTheta >= paddleMaxTheta) paddleLTriggered = TRUE;
+	if (CP_Input_KeyTriggered(g.cont.keyRight) && paddleRTheta >= paddleMaxTheta) paddleRTriggered = TRUE;
 }
 
 void laneDriver(Game g) {
@@ -217,16 +234,14 @@ void raftCollector(Game g) {
 
 }
 
-void gameExit(void) { 
-}
+void gameExit(void) {}
 
 void adminController(void) {
 	if (CP_Input_KeyReleased(KEY_ESCAPE) || CP_Input_KeyReleased(KEY_Q)) CP_Engine_Terminate();
 	if (CP_Input_KeyReleased(KEY_R)) CP_Engine_SetNextGameStateForced(gameInit, gameUpdate, gameExit);
 }
 
-int main(void)
-{
+int main(void) {
 	CP_Engine_SetPostUpdateFunction(adminController);
 	CP_Engine_SetNextGameState(gameInit, gameUpdate, gameExit);
 	CP_Engine_Run();
