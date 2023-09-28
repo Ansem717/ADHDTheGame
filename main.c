@@ -61,6 +61,7 @@ typedef struct {
 	CP_Vector p2;
 	CP_Vector p3;
 	CP_Vector center;
+	float area;
 } Triangle;
 
 CP_Vector bouncerCenter[3];
@@ -120,15 +121,15 @@ void variablesInit(void) {
 	padding = 30.0f;
 
 	BLACK = CP_Color_Create(0, 0, 0, 255);
-	GRAY = CP_Color_Create(70, 70, 70, 255);
+	GRAY = CP_Color_Create(140, 140, 140, 255);
 	LIGHT_GRAY = CP_Color_Create(180, 180, 180, 255);
 	WHITE = CP_Color_Create(255, 255, 255, 255);
-	RED = CP_Color_Create(70, 0, 0, 255);
-	YELLOW = CP_Color_Create(70, 70, 0, 255);
-	GREEN = CP_Color_Create(0, 70, 0, 255);
-	CYAN = CP_Color_Create(0, 70, 70, 255);
-	BLUE = CP_Color_Create(0, 0, 70, 255);
-	MAGENTA = CP_Color_Create(70, 0, 70, 255);
+	RED = CP_Color_Create(140, 0, 0, 255);
+	YELLOW = CP_Color_Create(140, 140, 0, 255);
+	GREEN = CP_Color_Create(0, 140, 0, 255);
+	CYAN = CP_Color_Create(0, 140, 140, 255);
+	BLUE = CP_Color_Create(0, 0, 140, 255);
+	MAGENTA = CP_Color_Create(140, 0, 140, 255);
 	NONE = CP_Color_Create(255, 255, 255, 0);
 
 	CONTROLLERS[0].keyLeft = KEY_A;
@@ -240,6 +241,24 @@ void breakout(Game g) {
 
 }
 
+float area(CP_Vector p1, CP_Vector p2, CP_Vector p3) {
+	return abs((p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y)) / 2.0);
+}
+
+int isInside(CP_Vector p1, CP_Vector p2, CP_Vector p3, CP_Vector pq) {
+	//Calculate area of triangle
+	float A = area(p1, p2, p3);
+
+	//Calculate the areas of the three triangles by replacing one vertex with the point in question
+	float A1 = area(pq, p2, p3);
+	float A2 = area(p1, pq, p3);
+	float A3 = area(p1, p2, pq);
+
+	//if the sum of the triangles formed by the point and edge equal the area of the original triangle,
+	// we have collision.
+	return (A + 1 >= A1 + A2 + A3);
+}
+
 void pinball(Game* g) {
 	if (g->init == 0) {
 		//BOUNCERS
@@ -258,6 +277,8 @@ void pinball(Game* g) {
 		bouncerTriangle.p3.y = g->y + g->h * 20 / 32;
 		bouncerTriangle.center.x = g->x + g->w * 8 / 16;
 		bouncerTriangle.center.y = g->y + g->h * 77 / 128;
+
+		bouncerTriangle.area = area(bouncerTriangle.p1, bouncerTriangle.p2, bouncerTriangle.p3);
 
 
 		//PADDLES
@@ -297,10 +318,10 @@ void pinball(Game* g) {
 		);
 
 		//PADDLES
-		paddle[LEFT].p2.x = g->x + padding / 2 + (g->w * 11 / 32) * sin(CP_Math_Radians(paddle[LEFT].theta));
+		paddle[LEFT].p2.x = g->x + padding / 2 + (g->w * 23 / 64) * sin(CP_Math_Radians(paddle[LEFT].theta));
 		paddle[LEFT].p2.y = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddle[LEFT].theta));
 
-		paddle[RIGHT].p2.x = g->x + g->w - padding / 2 - (g->w * 11 / 32) * sin(CP_Math_Radians(paddle[RIGHT].theta));
+		paddle[RIGHT].p2.x = g->x + g->w - padding / 2 - (g->w * 23 / 64) * sin(CP_Math_Radians(paddle[RIGHT].theta));
 		paddle[RIGHT].p2.y = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddle[RIGHT].theta));
 
 		for (int i = 0; i < 2; i++) {
@@ -376,16 +397,23 @@ void pinball(Game* g) {
 		}
 
 		//Bouncer TRIANGLE collision
-		float tdxl = bouncerTriangle.p1.x - bouncerTriangle.p2.x; //Triangle Delta X Left
-		float tdyl = bouncerTriangle.p1.y - bouncerTriangle.p2.y; //Triangle Delta Y Left
-		CP_Vector tnl = CP_Vector_Normalize(CP_Vector_Set(-tdyl, tdxl)); //Triangle Normal Left
-		float tdxr = bouncerTriangle.p3.x - bouncerTriangle.p1.x; //Triangle Delta X Right
-		float tdyr = bouncerTriangle.p3.y - bouncerTriangle.p1.y; //Triangle Delta Y Right
-		CP_Vector tnr = CP_Vector_Normalize(CP_Vector_Set(-tdyl, tdxl)); //Triangle Normal Right
-		CP_Vector tnb = CP_Vector_Set(0, 1); //Triangle Normal Bottom :: Flat line, so the vector is 0,1
+		float dist = CP_Vector_Distance(pinballPos, bouncerTriangle.center);
+		float yLen = bouncerTriangle.center.y - pinballPos.y;
+		float xLen = bouncerTriangle.center.x - pinballPos.x;
+		float triTheta = atan2f(yLen, xLen);
 
+		CP_Vector closest = CP_Vector_Add(
+			pinballPos, 
+			CP_Vector_Set(
+				pinballRadius * cos(triTheta), 
+				pinballRadius * sin(triTheta)
+			)
+		);
 
-
+		if (isInside(bouncerTriangle.p1, bouncerTriangle.p2, bouncerTriangle.p3, closest)) {
+			pinballVel.y = bouncerPower * sin(triTheta);
+			pinballVel.x = bouncerPower * cos(triTheta);
+		}
 
 		//WALL COLLISION
 		if (pinballPos.x < g->x + padding / 2 + pinballRadius) {
