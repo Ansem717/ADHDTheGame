@@ -68,6 +68,7 @@ CP_Vector pinballPos, pinballVel;
 float pinballRadius, pinballJerkPower, pinballJerkTimeIncrement, pinballTimeSinceLastJerk;
 CP_Color pinballCol, pinballStroke;
 int pinballAlpha;
+float pinballTimeOfDeath, pinballRespawnHoldTime;
 float gravity, terminalVelocity;
 
 void fill(CP_Color c) {
@@ -164,15 +165,18 @@ void variablesInit(void) {
 
 	gravity = 0.6;
 	terminalVelocity = 13;
+
 	pinballRadius = 13;
 	pinballPos = CP_Vector_Zero();
 	pinballVel = CP_Vector_Zero();
 	pinballCol = GRAY;
 	pinballStroke = BLACK;
 	pinballAlpha = 255;
-	pinballJerkPower = -8;
+	pinballJerkPower = -5;
 	pinballJerkTimeIncrement = 15;
 	pinballTimeSinceLastJerk = 0;
+	pinballTimeOfDeath = 0;
+	pinballRespawnHoldTime = 1;
 
 	/*******************\
 	| LANE DRIVER INITS |
@@ -376,11 +380,34 @@ void pinball(Game* g) {
 			//Rounded estimate from lowest point of paddle
 			//Pinball has gone too far
 
-			pinballPos.y += 2;
+			pinballPos.y += pinballVel.y;
 			pinballAlpha -= 30;
 			pinballCol = CP_Color_Create(70, 70, 70, pinballAlpha);
 			pinballStroke = CP_Color_Create(0, 0, 0, pinballAlpha);
 
+			//TODO: Decrement Death. If deaths == 0, lose the game.
+
+			if (pinballAlpha <= 0) {
+				//Fade complete. Restart pinball location. 
+				pinballPos.x = CP_Random_RangeFloat(bouncerCenter[0].x - pinballRadius, bouncerCenter[1].x + pinballRadius);
+				pinballPos.y = g->y + g->h * 1 / 10;
+
+				pinballCol = GRAY;
+				pinballStroke = BLACK;
+
+			}
+		} else if (pinballAlpha <= 0) {
+			//Should only happen if death is done fading out. 
+			//I cannot wait inside of that conditional because I've already moved the pinball.
+			//However, I can avoid referencing alpha by using GRAY and BLACK, letting Alpha
+			// mimic as a conditional as well.
+
+			//Hold the ball for a second so the player is ready
+			pinballTimeOfDeath = (pinballTimeOfDeath == 0) ? CP_System_GetSeconds() : pinballTimeOfDeath;
+			if (CP_System_GetSeconds() > pinballTimeOfDeath + pinballRespawnHoldTime) {
+				pinballAlpha = 255;
+				pinballTimeOfDeath = 0;
+			}
 		} else {
 			//PINBALL MOTION
 			pinballPos = CP_Vector_Add(pinballPos, pinballVel);
@@ -395,10 +422,12 @@ void pinball(Game* g) {
 			//The pinball randomly jerks up
 			if (pinballTimeSinceLastJerk + pinballJerkTimeIncrement < CP_System_GetSeconds()) {
 				//Time to jerk!
-				pinballVel.y += pinballJerkPower;
+				pinballVel.x += pinballJerkPower;
 				pinballTimeSinceLastJerk = CP_System_GetSeconds();
 			}
 		}
+
+		
 
 		//PINBALL CONTROLS
 		if (CP_Input_KeyTriggered(g->cont.keyLeft) && paddle[LEFT].theta >= paddleMaxTheta) paddle[LEFT].triggered = 1;
