@@ -264,6 +264,28 @@ void pinball(Game* g) {
 			g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddleRTheta))
 		);
 
+		fill(g->col);
+		stroke(BLACK, 0);
+		float thetaLX1 = g->x + padding / 2;
+		float thetaLX2 = g->x + padding / 2 + (g->w * 3 / 8) * sin(CP_Math_Radians(paddleLTheta));
+		float middleLX = (thetaLX2 - thetaLX1) / 2 + thetaLX1;
+		float thetaLY1 = g->y + g->h * 12 / 16;
+		float thetaLY2 = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddleLTheta));
+		float middleLY = (thetaLY2 - thetaLY1) / 2 + thetaLY1;
+		CP_Graphics_DrawCircle(middleLX, middleLY, 16);
+		CP_Graphics_DrawCircle(thetaLX1, thetaLY1, 16);
+		CP_Graphics_DrawCircle(thetaLX2, thetaLY2, 16);
+
+		float thetaRX1 = g->x + g->w - padding / 2;
+		float thetaRX2 = g->x + g->w - padding / 2 - (g->w * 3 / 8) * sin(CP_Math_Radians(paddleRTheta));
+		float middleRX = (thetaRX2 - thetaRX1) / 2 + thetaRX1;
+		float thetaRY1 = g->y + g->h * 12 / 16;
+		float thetaRY2 = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddleRTheta));
+		float middleRY = (thetaRY2 - thetaRY1) / 2 + thetaRY1;
+		CP_Graphics_DrawCircle(middleRX, middleRY, 16);
+		CP_Graphics_DrawCircle(thetaRX1, thetaRY1, 16);
+		CP_Graphics_DrawCircle(thetaRX2, thetaRY2, 16);
+
 
 		//PINBALL
 		stroke(BLACK, 2);
