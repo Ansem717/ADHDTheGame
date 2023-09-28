@@ -48,9 +48,6 @@ Game GAMES[4];
 float margin, padding;
 char debugBuffer[50] = { 0 };
 
-CP_Vector bouncerCenter[4];
-float bouncerRadius, bouncerPower;
-
 typedef struct {
 	CP_Vector p1;
 	CP_Vector p2;
@@ -58,6 +55,17 @@ typedef struct {
 	int triggered;
 	float power;
 } Paddle;
+
+typedef struct {
+	CP_Vector p1;
+	CP_Vector p2;
+	CP_Vector p3;
+	CP_Vector center;
+} Triangle;
+
+CP_Vector bouncerCenter[3];
+float bouncerRadius, bouncerPower;
+Triangle bouncerTriangle;
 
 Paddle paddle[2];
 float paddleMaxTheta, paddleMinTheta;
@@ -242,8 +250,15 @@ void pinball(Game* g) {
 		bouncerCenter[2].x = g->x + g->w * 2 / 4;
 		bouncerCenter[2].y = g->y + g->h * 11 / 32;
 
-		bouncerCenter[3].x = g->x + g->w * 8 / 16;
-		bouncerCenter[3].y = g->y + g->h * 77 / 128;
+		bouncerTriangle.p1.x = g->x + g->w * 8 / 16;
+		bouncerTriangle.p1.y = g->y + g->h * 18 / 32;
+		bouncerTriangle.p2.x = g->x + g->w * 7 / 16;
+		bouncerTriangle.p2.y = g->y + g->h * 20 / 32;
+		bouncerTriangle.p3.x = g->x + g->w * 9 / 16;
+		bouncerTriangle.p3.y = g->y + g->h * 20 / 32;
+		bouncerTriangle.center.x = g->x + g->w * 8 / 16;
+		bouncerTriangle.center.y = g->y + g->h * 77 / 128;
+
 
 		//PADDLES
 		paddle[LEFT].theta = paddleMaxTheta;
@@ -273,12 +288,12 @@ void pinball(Game* g) {
 			CP_Graphics_DrawCircle(bouncerCenter[i].x, bouncerCenter[i].y, bouncerRadius * 2);
 		}
 		CP_Graphics_DrawTriangle(
-			g->x + g->w * 8 / 16,
-			g->y + g->h * 18 / 32,
-			g->x + g->w * 7 / 16,
-			g->y + g->h * 20 / 32,
-			g->x + g->w * 9 / 16,
-			g->y + g->h * 20 / 32
+			bouncerTriangle.p1.x,
+			bouncerTriangle.p1.y,
+			bouncerTriangle.p2.x,
+			bouncerTriangle.p2.y,
+			bouncerTriangle.p3.x,
+			bouncerTriangle.p3.y
 		);
 
 		//PADDLES
@@ -314,13 +329,14 @@ void pinball(Game* g) {
 			float yint = (paddle[i].p1.y - paddleRadius) - (slope * paddle[i].p1.x);
 
 			CP_Vector normal = CP_Vector_Normalize(CP_Vector_Set(-deltaY, deltaX));
+			CP_Vector pinballPointClosestToPaddle = CP_Vector_Add(pinballPos, CP_Vector_Scale(normal, pinballRadius));
 
-			int condition = (i == LEFT) ? pinballPos.x < paddle[i].p2.x : pinballPos.x > paddle[i].p2.x;
+			int condition = (i == LEFT) ? pinballPointClosestToPaddle.x < paddle[i].p2.x : pinballPointClosestToPaddle.x > paddle[i].p2.x;
 			paddle[i].power = (paddle[i].theta < paddleMaxTheta) ? paddlePowerHit : paddlePowerRest;
 
 			if (condition) {
 				//Pinball is aiming for the flat surface of the paddle
-				if (pinballPos.y + pinballRadius > (slope * pinballPos.x) + yint) {
+				if (pinballPointClosestToPaddle.y > (slope * pinballPointClosestToPaddle.x) + yint) {
 					pinballVel = CP_Vector_Scale(normal, paddle[i].power);
 					pinballPos = CP_Vector_Subtract(pinballPos, normal);
 				}
@@ -334,6 +350,8 @@ void pinball(Game* g) {
 				if (dist < pinballRadius + paddleRadius) {
 					pinballVel.y = paddle[i].power * sin(theta);
 					pinballVel.x = paddle[i].power * cos(theta);
+					pinballPos.y += paddle[i].power * sin(theta);
+					pinballPos.x += paddle[i].power * cos(theta);
 				}
 			}
 
@@ -356,6 +374,18 @@ void pinball(Game* g) {
 				pinballVel.x = bouncerPower * cos(theta);
 			}
 		}
+
+		//Bouncer TRIANGLE collision
+		float tdxl = bouncerTriangle.p1.x - bouncerTriangle.p2.x; //Triangle Delta X Left
+		float tdyl = bouncerTriangle.p1.y - bouncerTriangle.p2.y; //Triangle Delta Y Left
+		CP_Vector tnl = CP_Vector_Normalize(CP_Vector_Set(-tdyl, tdxl)); //Triangle Normal Left
+		float tdxr = bouncerTriangle.p3.x - bouncerTriangle.p1.x; //Triangle Delta X Right
+		float tdyr = bouncerTriangle.p3.y - bouncerTriangle.p1.y; //Triangle Delta Y Right
+		CP_Vector tnr = CP_Vector_Normalize(CP_Vector_Set(-tdyl, tdxl)); //Triangle Normal Right
+		CP_Vector tnb = CP_Vector_Set(0, 1); //Triangle Normal Bottom :: Flat line, so the vector is 0,1
+
+
+
 
 		//WALL COLLISION
 		if (pinballPos.x < g->x + padding / 2 + pinballRadius) {
