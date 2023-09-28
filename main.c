@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define DEBUG 1
+#define LEFT 0
+#define RIGHT 1
 
 float WIDTH, HEIGHT;
 CP_Color BLACK, GRAY, LIGHT_GRAY, WHITE, RED, YELLOW, GREEN, CYAN, BLUE, MAGENTA, NONE;
@@ -48,10 +50,20 @@ char debugBuffer[50] = { 0 };
 
 CP_Vector bouncerCenter[4];
 float bouncerRadius, bouncerPower;
-float paddleLTheta, paddleRTheta, paddleMaxTheta, paddleMinTheta;
-float paddleRadius, paddlePower;
-int paddleLTriggered, paddleRTriggered;
+
+typedef struct {
+	CP_Vector p1;
+	CP_Vector p2;
+	float theta;
+	int triggered;
+	float power;
+} Paddle;
+
+Paddle paddle[2];
+float paddleMaxTheta, paddleMinTheta;
+float paddleRadius, paddlePowerRest, paddlePowerHit;
 float paddleAccSpeed, paddleDecSpeed;
+
 CP_Vector pinballPos, pinballVel;
 float pinballRadius;
 float gravity, terminalVelocity;
@@ -138,15 +150,13 @@ void variablesInit(void) {
 	GAMES[1].play = &pinball;
 
 	bouncerRadius = 20;
-	bouncerPower = -10;
+	bouncerPower = -7;
 
 	paddleRadius = 20;
-	paddlePower = -1;
-	paddleLTheta = 120;
-	paddleRTheta = 120;
+	paddlePowerRest = -8;
+	paddlePowerHit = -20;
 	paddleMaxTheta = 120;
 	paddleMinTheta = 60;
-	paddleLTriggered = paddleRTriggered = 0;
 	paddleAccSpeed = 16;
 	paddleDecSpeed = 5;
 
@@ -223,6 +233,19 @@ void pinball(Game* g) {
 		bouncerCenter[3].x = g->x + g->w * 8 / 16;
 		bouncerCenter[3].y = g->y + g->h * 77 / 128;
 
+		//PADDLES
+		paddle[LEFT].theta = paddleMaxTheta;
+		paddle[LEFT].p1.x = g->x + padding / 2;
+		paddle[LEFT].p1.y = g->y + g->h * 12 / 16;
+		paddle[LEFT].triggered = 0;
+		paddle[LEFT].power = paddlePowerRest;
+
+		paddle[RIGHT].theta = paddleMaxTheta;
+		paddle[RIGHT].p1.x = g->x + g->w - padding / 2;
+		paddle[RIGHT].p1.y = g->y + g->h * 12 / 16;
+		paddle[RIGHT].triggered = 0;
+		paddle[RIGHT].power = paddlePowerRest;
+
 		//PINBALL
 		pinballPos.x = CP_Random_RangeFloat(bouncerCenter[0].x - pinballRadius, bouncerCenter[1].x + pinballRadius);
 		pinballPos.y = g->y + g->h * 1 / 10;
@@ -245,57 +268,64 @@ void pinball(Game* g) {
 		);
 
 		//PADDLES
-		stroke(BLACK, paddleRadius * 2);
-		CP_Graphics_DrawLine(
-			g->x + padding / 2,
-			g->y + g->h * 12 / 16,
-			g->x + padding / 2 + (g->w * 3 / 8) * sin(CP_Math_Radians(paddleLTheta)),
-			g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddleLTheta))
-		);
+		paddle[LEFT].p2.x = g->x + padding / 2 + (g->w * 3 / 8) * sin(CP_Math_Radians(paddle[LEFT].theta));
+		paddle[LEFT].p2.y = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddle[LEFT].theta));
 
-		CP_Graphics_DrawLine(
-			g->x + g->w - padding / 2,
-			g->y + g->h * 12 / 16,
-			g->x + g->w - padding / 2 - (g->w * 3 / 8) * sin(CP_Math_Radians(paddleRTheta)),
-			g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddleRTheta))
-		);
+		paddle[RIGHT].p2.x = g->x + g->w - padding / 2 - (g->w * 3 / 8) * sin(CP_Math_Radians(paddle[RIGHT].theta));
+		paddle[RIGHT].p2.y = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddle[RIGHT].theta));
 
-		if (paddleLTriggered) {
-			if (paddleLTheta > paddleMinTheta) { paddleLTheta -= paddleAccSpeed; } else { paddleLTriggered = 0; }
-		} else if (paddleLTheta < paddleMaxTheta) 
-			paddleLTheta += paddleDecSpeed;
+		for (int i = 0; i < 2; i++) {
+			stroke(BLACK, paddleRadius * 2);
+			CP_Graphics_DrawLine(paddle[i].p1.x, paddle[i].p1.y, paddle[i].p2.x, paddle[i].p2.y);
 
-		if (paddleRTriggered) {
-			if (paddleRTheta > paddleMinTheta) { paddleRTheta -= paddleAccSpeed; } else { paddleRTriggered = 0; }
-		} else if (paddleRTheta < paddleMaxTheta) paddleRTheta += paddleDecSpeed;
+			if (paddle[i].triggered) {
+				if (paddle[i].theta > paddleMinTheta) { paddle[i].theta -= paddleAccSpeed; } else { paddle[i].triggered = 0; }
+			} else if (paddle[i].theta < paddleMaxTheta) paddle[i].theta += paddleDecSpeed;
+
+			//Circles on paddle for style and to get MiddleX MiddleY
+			fill(g->col);
+			stroke(BLACK, 0);
+			CP_Vector middle = CP_Vector_Set(
+				(paddle[i].p2.x - paddle[i].p1.x) / 2 + paddle[i].p1.x,
+				(paddle[i].p2.y - paddle[i].p1.y) / 2 + paddle[i].p1.y
+			);
+			CP_Graphics_DrawCircle(middle.x, middle.y, 16);
+			CP_Graphics_DrawCircle(paddle[i].p1.x, paddle[i].p1.y, 16);
+			CP_Graphics_DrawCircle(paddle[i].p2.x, paddle[i].p2.y, 16);
+
+			//PADDLE COLLISION
+			float deltaX = (i == LEFT) ? paddle[i].p2.x - paddle[i].p1.x : paddle[i].p1.x - paddle[i].p2.x;
+			float deltaY = (i == LEFT) ? paddle[i].p2.y - paddle[i].p1.y : paddle[i].p1.y - paddle[i].p2.y;
+			float slope = deltaY / deltaX;
+			float yint = (paddle[i].p1.y - paddleRadius) - (slope * paddle[i].p1.x);
+
+			CP_Vector normal = CP_Vector_Normalize(CP_Vector_Set(-deltaY, deltaX));
+
+			int condition = (i == LEFT) ? pinballPos.x < paddle[i].p2.x : pinballPos.x > paddle[i].p2.x;
+			paddle[i].power = (paddle[i].theta < paddleMaxTheta) ? paddlePowerHit : paddlePowerRest;
+
+			if (condition) {
+				//Pinball is aiming for the flat surface of the paddle
+				if (pinballPos.y + pinballRadius > (slope * pinballPos.x) + yint) {
+					pinballVel = CP_Vector_Scale(normal, paddle[i].power);
+					pinballPos = CP_Vector_Subtract(pinballPos, normal);
+				}
+			} else {
+				//Pinball is aiming for the curved head
+				float dist = CP_Vector_Distance(pinballPos, paddle[i].p2);
+				float oppLen = paddle[i].p2.y - pinballPos.y;
+				float adjLen = paddle[i].p2.x - pinballPos.x;
+				float theta = atan2f(oppLen, adjLen);
+
+				if (dist < pinballRadius + paddleRadius) {
+					pinballVel.y = paddle[i].power * sin(theta);
+					pinballVel.x = paddle[i].power * cos(theta);
+				}
+			}
+
+		}
 
 		
-
-		//Circles on paddle for style and to get MiddleX MiddleY
-		fill(g->col);
-		stroke(BLACK, 0);
-		float pointLX1 = g->x + padding / 2;
-		float pointLX2 = g->x + padding / 2 + (g->w * 3 / 8) * sin(CP_Math_Radians(paddleLTheta));
-		float middleLX = (pointLX2 - pointLX1) / 2 + pointLX1;
-		float pointLY1 = g->y + g->h * 12 / 16;
-		float pointLY2 = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddleLTheta));
-		float middleLY = (pointLY2 - pointLY1) / 2 + pointLY1;
-		CP_Graphics_DrawCircle(middleLX, middleLY, 16);
-		CP_Graphics_DrawCircle(pointLX1, pointLY1, 16);
-		CP_Graphics_DrawCircle(pointLX2, pointLY2, 16);
-
-
-		stroke(BLACK, 0);
-		float pointRX1 = g->x + g->w - padding / 2;
-		float pointRX2 = g->x + g->w - padding / 2 - (g->w * 3 / 8) * sin(CP_Math_Radians(paddleRTheta));
-		float middleRX = (pointRX2 - pointRX1) / 2 + pointRX1;
-		float pointRY1 = g->y + g->h * 12 / 16;
-		float pointRY2 = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddleRTheta));
-		float middleRY = (pointRY2 - pointRY1) / 2 + pointRY1;
-		CP_Graphics_DrawCircle(middleRX, middleRY, 16);
-		CP_Graphics_DrawCircle(pointRX1, pointRY1, 16);
-		CP_Graphics_DrawCircle(pointRX2, pointRY2, 16);
-
 
 		//PINBALL
 		stroke(BLACK, 2);
@@ -333,35 +363,7 @@ void pinball(Game* g) {
 			pinballPos.y -= pinballPos.y - (g->y + g->h - padding / 2 - pinballRadius) + 1;
 		}
 
-		//PADDLE COLLISION
-		float deltaX = pointLX2 - pointLX1;
-		float deltaY = pointLY2 - pointLY1;
-		float slope = deltaY / deltaX;
-		float yint = (pointLY1 - paddleRadius) - (slope * pointLX1);
-
-		CP_Vector normal = CP_Vector_Normalize(CP_Vector_Set(-deltaY, deltaX));
-		normal = CP_Vector_Scale(normal, 10);
-
-		if (pinballPos.x < pointLX2) {
-			//Pinball is aiming for the flat surface of the paddle
-			if (pinballPos.y + pinballRadius > (slope * pinballPos.x) + yint) {
-				paddlePower = (paddleLTriggered) ? -2 : -1;
-				pinballVel = CP_Vector_Scale(normal, paddlePower);
-				pinballPos = CP_Vector_Subtract(pinballPos, normal);
-			}
-		} else {
-			//Pinball is aiming for the curved head
-			float dist = CP_Vector_Distance(pinballPos, CP_Vector_Set(pointLX2, pointLY2));
-			float oppLen = pointLY2 - pinballPos.y;
-			float adjLen = pointLX2 - pinballPos.x;
-			float theta = atan2f(oppLen, adjLen);
-
-			if (dist < pinballRadius + paddleRadius) {
-				paddlePower = (paddleLTriggered) ? -2 : -1;
-				pinballVel.y = paddlePower * 5 * sin(theta);
-				pinballVel.x = paddlePower * 5 * cos(theta);
-			}
-		}
+		
 
 		//PINBALL MOTION
 		pinballPos = CP_Vector_Add(pinballPos, pinballVel);
@@ -372,8 +374,8 @@ void pinball(Game* g) {
 		}
 
 		//PINBALL CONTROLS
-		if (CP_Input_KeyTriggered(g->cont.keyLeft) && paddleLTheta >= paddleMaxTheta) paddleLTriggered = 1;
-		if (CP_Input_KeyTriggered(g->cont.keyRight) && paddleRTheta >= paddleMaxTheta) paddleRTriggered = 1;
+		if (CP_Input_KeyTriggered(g->cont.keyLeft) && paddle[LEFT].theta >= paddleMaxTheta) paddle[LEFT].triggered = 1;
+		if (CP_Input_KeyTriggered(g->cont.keyRight) && paddle[RIGHT].theta >= paddleMaxTheta) paddle[RIGHT].triggered = 1;
 	}
 }
 
