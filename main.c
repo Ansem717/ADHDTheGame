@@ -65,7 +65,9 @@ float paddleRadius, paddlePowerRest, paddlePowerHit;
 float paddleAccSpeed, paddleDecSpeed;
 
 CP_Vector pinballPos, pinballVel;
-float pinballRadius;
+float pinballRadius, pinballJerkPower, pinballJerkTimeIncrement, pinballTimeSinceLastJerk;
+CP_Color pinballCol, pinballStroke;
+int pinballAlpha;
 float gravity, terminalVelocity;
 
 void fill(CP_Color c) {
@@ -153,18 +155,24 @@ void variablesInit(void) {
 	bouncerPower = -7;
 
 	paddleRadius = 20;
-	paddlePowerRest = -8;
-	paddlePowerHit = -20;
+	paddlePowerRest = -6;
+	paddlePowerHit = -19;
 	paddleMaxTheta = 120;
 	paddleMinTheta = 60;
 	paddleAccSpeed = 16;
 	paddleDecSpeed = 5;
 
-	gravity = 0.5;
+	gravity = 0.6;
 	terminalVelocity = 13;
 	pinballRadius = 13;
 	pinballPos = CP_Vector_Zero();
 	pinballVel = CP_Vector_Zero();
+	pinballCol = GRAY;
+	pinballStroke = BLACK;
+	pinballAlpha = 255;
+	pinballJerkPower = -8;
+	pinballJerkTimeIncrement = 15;
+	pinballTimeSinceLastJerk = 0;
 
 	/*******************\
 	| LANE DRIVER INITS |
@@ -250,6 +258,8 @@ void pinball(Game* g) {
 		pinballPos.x = CP_Random_RangeFloat(bouncerCenter[0].x - pinballRadius, bouncerCenter[1].x + pinballRadius);
 		pinballPos.y = g->y + g->h * 1 / 10;
 
+		pinballTimeSinceLastJerk = CP_System_GetSeconds();
+
 		g->init = 1;
 	} else {
 		//BOUNCERS
@@ -268,10 +278,10 @@ void pinball(Game* g) {
 		);
 
 		//PADDLES
-		paddle[LEFT].p2.x = g->x + padding / 2 + (g->w * 3 / 8) * sin(CP_Math_Radians(paddle[LEFT].theta));
+		paddle[LEFT].p2.x = g->x + padding / 2 + (g->w * 11 / 32) * sin(CP_Math_Radians(paddle[LEFT].theta));
 		paddle[LEFT].p2.y = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddle[LEFT].theta));
 
-		paddle[RIGHT].p2.x = g->x + g->w - padding / 2 - (g->w * 3 / 8) * sin(CP_Math_Radians(paddle[RIGHT].theta));
+		paddle[RIGHT].p2.x = g->x + g->w - padding / 2 - (g->w * 11 / 32) * sin(CP_Math_Radians(paddle[RIGHT].theta));
 		paddle[RIGHT].p2.y = g->y + g->h * 12 / 16 + (g->h * 2 / 16) * -cos(CP_Math_Radians(paddle[RIGHT].theta));
 
 		for (int i = 0; i < 2; i++) {
@@ -325,11 +335,9 @@ void pinball(Game* g) {
 
 		}
 
-		
-
 		//PINBALL
-		stroke(BLACK, 2);
-		fill(GRAY);
+		stroke(pinballStroke, 2);
+		fill(pinballCol);
 		CP_Graphics_DrawCircle(pinballPos.x, pinballPos.y, pinballRadius * 2);
 
 		//BOUNCER COLLISION
@@ -363,19 +371,39 @@ void pinball(Game* g) {
 			pinballPos.y -= pinballPos.y - (g->y + g->h - padding / 2 - pinballRadius) + 1;
 		}
 
-		
+		//LOSS CONDITION
+		if (pinballPos.y > g->y + g->h * 13 / 16) {
+			//Rounded estimate from lowest point of paddle
+			//Pinball has gone too far
 
-		//PINBALL MOTION
-		pinballPos = CP_Vector_Add(pinballPos, pinballVel);
-		if (pinballVel.y <= terminalVelocity) {
-			pinballVel.y += gravity;
+			pinballPos.y += 2;
+			pinballAlpha -= 30;
+			pinballCol = CP_Color_Create(70, 70, 70, pinballAlpha);
+			pinballStroke = CP_Color_Create(0, 0, 0, pinballAlpha);
+
 		} else {
-			pinballVel.y = terminalVelocity;
+			//PINBALL MOTION
+			pinballPos = CP_Vector_Add(pinballPos, pinballVel);
+			if (pinballVel.y <= terminalVelocity) {
+				pinballVel.y += gravity;
+			} else {
+				pinballVel.y = terminalVelocity;
+			}
+
+			//PINBALL JERK
+			//To prevent the pinball from locking in a perfect angle
+			//The pinball randomly jerks up
+			if (pinballTimeSinceLastJerk + pinballJerkTimeIncrement < CP_System_GetSeconds()) {
+				//Time to jerk!
+				pinballVel.y += pinballJerkPower;
+				pinballTimeSinceLastJerk = CP_System_GetSeconds();
+			}
 		}
 
 		//PINBALL CONTROLS
 		if (CP_Input_KeyTriggered(g->cont.keyLeft) && paddle[LEFT].theta >= paddleMaxTheta) paddle[LEFT].triggered = 1;
 		if (CP_Input_KeyTriggered(g->cont.keyRight) && paddle[RIGHT].theta >= paddleMaxTheta) paddle[RIGHT].triggered = 1;
+
 	}
 }
 
