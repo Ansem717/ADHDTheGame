@@ -220,7 +220,7 @@ void pinball(Game* g) {
 		bouncerCenter[3].y = g->y + g->h * 77 / 128;
 
 		//PINBALL
-		pinballPos.x = g->x + CP_Random_RangeFloat(pinballRadius, g->w - pinballRadius);
+		pinballPos.x = CP_Random_RangeFloat(bouncerCenter[0].x - pinballRadius, bouncerCenter[1].x + pinballRadius);
 		pinballPos.y = g->y + g->h * 1 / 10;
 
 		g->init = 1;
