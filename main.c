@@ -14,9 +14,9 @@
 
 #include "cprocessing.h"
 #include "utility.h"
+#include "gameObject.h"
 
 void gameInit(void) {
-
 	CP_System_SetWindowSize(1440, 900);
 
 	MARGIN = 100.0f;
@@ -30,19 +30,41 @@ void gameInit(void) {
 	CP_Settings_TextAlignment(CP_TEXT_ALIGN_H_CENTER, CP_TEXT_ALIGN_V_MIDDLE);
 	CP_Settings_LineCapMode(CP_LINE_CAP_ROUND);
 
-	fill(getColor(LIGHT_GRAY));
-	stroke(getColor(RED), 2);
+	fill(getColor(WHITE));
+	stroke(getColor(BLACK), 2);
 	CP_Settings_TextSize(40.0f);
 
 	CP_Settings_Save();
 
+	gameManagerInits();
+
+	for (int i = 0; i < 4; i++) {
+		Game g = getGame(i);
+		float gameWidth = (WIDTH - PADDING * 3) / 4;
+		float xStep = gameWidth + PADDING;
+		g.x = xStep * g.id + PADDING / 2;
+		g.y = PADDING / 2;
+		g.w = gameWidth;
+		g.h = HEIGHT - PADDING;
+		setGameDimensions(i, g.x, g.y, g.w, g.h);
+	}
+
 }
 
 void gameUpdate(void) {
-	CP_Graphics_ClearBackground(getColor(BLUE));
+	CP_Graphics_ClearBackground(getColor(BLACK));
 	CP_Settings_Translate(MARGIN, 0);
 
-	CP_Graphics_DrawCircle(WIDTH / 2, HEIGHT / 2, 100);
+	for (int i = 0; i < 4; i++) {
+		//for each GAME g
+		Game g = getGame(i);
+		if (g.active) {
+			fill(getColor(LIGHT_GRAY, 255));
+			stroke(g.col, PADDING);
+			CP_Graphics_DrawRect(g.x, g.y, g.w, g.h);
+
+		}
+	}
 
 }
 
