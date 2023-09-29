@@ -15,34 +15,27 @@
 #define LEFT 0
 #define RIGHT 1
 
-float WIDTH, HEIGHT;
-CP_Color BLACK, GRAY, LIGHT_GRAY, WHITE, RED, YELLOW, GREEN, CYAN, BLUE, MAGENTA, NONE;
+#include "gameObject.h"
 
-typedef struct {
-	CP_KEY keyLeft;
-	CP_KEY keyRight;
-} Controller;
+float WIDTH, HEIGHT, MARGIN, PADDING;
 
-typedef struct {
-	int id;
-	float x;
-	float y;
-	float w;
-	float h;
-	Controller cont;
-	CP_Color col;
-	int active;
-	int init;
-	void (*play)(Game);
-} Game;
+typedef enum COLORS {
+	BLACK,
+	GRAY,
+	LIGHT_GRAY,
+	WHITE,
+	RED,
+	YELLOW,
+	GREEN,
+	CYAN,
+	BLUE,
+	MAGENTA,
+	NONE
+} COLORS;
 
-Controller CONTROLLERS[4];
-Game GAMES[4];
-
-float margin, padding;
-
-void	fill(CP_Color c);
-void	stroke(CP_Color c, float w);
+CP_Color	getColor	(COLORS c, int a);
+void		fill		(CP_Color c);
+void		stroke		(CP_Color c, float w);
 
 void	breakout(Game);
 void	laneDriver(Game);
