@@ -59,7 +59,7 @@ void gameUpdate(void) {
 		//for each GAME g
 		Game g = getGame(i);
 		if (g.active) {
-			fill(getColor(LIGHT_GRAY, 255));
+			fill(getColor(LIGHT_GRAY));
 			stroke(g.col, PADDING);
 			CP_Graphics_DrawRect(g.x, g.y, g.w, g.h);
 
