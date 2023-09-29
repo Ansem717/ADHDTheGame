@@ -47,6 +47,8 @@ void gameInit(void) {
 		g.w = gameWidth;
 		g.h = HEIGHT - PADDING;
 		setGameDimensions(i, g.x, g.y, g.w, g.h);
+
+		g.init(g);
 	}
 
 }
