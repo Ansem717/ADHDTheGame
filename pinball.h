@@ -11,4 +11,9 @@
 #ifndef PINBALL_H
 #define PINBALL_H
 
+#include "gameObject.h"
+
+void pinballInit(Game g);
+void pinballPlay(Game g);
+
 #endif

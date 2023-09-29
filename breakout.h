@@ -1,14 +1,19 @@
 //---------------------------------------------------------
-// file:	pinball.c
+// file:	breakout.h
 // author:	Andy Malik
 // email:	andy.malik@digipen.edu
 //
-// brief:	functionality for the pinball portion of the ADHD game
+// brief:	Breakout Header
 //
 // Copyright © 2020 DigiPen, All rights reserved.
 //---------------------------------------------------------
-#include "pinball.h"
 
-void pinballInit(Game g) {}
+#ifndef BREAKOUT_H
+#define BREAKOUT_H
 
-void pinballPlay(Game g) {}
+#include "gameObject.h"
+
+void breakoutInit(Game g);
+void breakoutPlay(Game g);
+
+#endif

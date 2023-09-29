@@ -63,6 +63,8 @@ void gameUpdate(void) {
 			stroke(g.col, PADDING);
 			CP_Graphics_DrawRect(g.x, g.y, g.w, g.h);
 
+			g.play(g);
+
 		}
 	}
 

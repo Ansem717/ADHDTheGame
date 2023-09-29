@@ -194,14 +194,20 @@ xcopy "$(ProjectDir)Assets\*" "$(OutDir)Assets\" /s /r /y /q</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="breakout.c" />
     <ClCompile Include="gameObject.c" />
+    <ClCompile Include="lanedriver.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="pinball.c" />
+    <ClCompile Include="raftcollector.c" />
     <ClCompile Include="utility.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="breakout.h" />
     <ClInclude Include="gameObject.h" />
+    <ClInclude Include="lanedriver.h" />
     <ClInclude Include="pinball.h" />
+    <ClInclude Include="raftcollector.h" />
     <ClInclude Include="utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

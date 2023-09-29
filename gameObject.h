@@ -34,5 +34,6 @@ typedef struct Game {
 void	gameManagerInits	(void);
 Game	getGame				(int id);
 void	setGameDimensions	(int id, float x, float y, float w, float h);
+void	setGameColor		(int id, CP_Color c);
 
 #endif //GAME_OBJECT_H

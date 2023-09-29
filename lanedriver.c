@@ -1,14 +1,15 @@
 //---------------------------------------------------------
-// file:	pinball.c
+// file:	lanedriver.c
 // author:	Andy Malik
 // email:	andy.malik@digipen.edu
 //
-// brief:	functionality for the pinball portion of the ADHD game
+// brief:	lanedriver game
 //
 // Copyright © 2020 DigiPen, All rights reserved.
 //---------------------------------------------------------
-#include "pinball.h"
 
-void pinballInit(Game g) {}
+#include "lanedriver.h"
 
-void pinballPlay(Game g) {}
+void laneDriverInit(Game g) {}
+
+void laneDriverPlay(Game g) {}

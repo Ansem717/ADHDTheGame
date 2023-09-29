@@ -1,14 +1,15 @@
 //---------------------------------------------------------
-// file:	pinball.c
+// file:	raftcollector.c
 // author:	Andy Malik
 // email:	andy.malik@digipen.edu
 //
-// brief:	functionality for the pinball portion of the ADHD game
+// brief:	raftcollector game
 //
 // Copyright © 2020 DigiPen, All rights reserved.
 //---------------------------------------------------------
-#include "pinball.h"
 
-void pinballInit(Game g) {}
+#include "raftcollector.h"
 
-void pinballPlay(Game g) {}
+void raftCollectorInit(Game g) {}
+
+void raftCollectorPlay(Game g) {}
