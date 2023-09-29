@@ -1,27 +1,19 @@
 //---------------------------------------------------------
-// file:	pinball.h
+// file:	raftcollector.h
 // author:	Andy Malik
 // email:	andy.malik@digipen.edu
 //
-// brief:	Pinball Header
+// brief:	raftcollector Header
 //
 // Copyright © 2020 DigiPen, All rights reserved.
 //---------------------------------------------------------
 
-#ifndef PINBALL_H
-#define PINBALL_H
+#ifndef RAFTCOLLECTOR_H
+#define RAFTCOLLECTOR_H
 
 #include "gameObject.h"
 
-typedef struct {
-	CP_Vector p1;
-	CP_Vector p2;
-	float theta;
-	int triggered;
-	float power;
-} Paddle;
-
-void pinballInit(Game g);
-void pinballPlay(Game g);
+void raftCollectorInit(Game g);
+void raftCollectorPlay(Game g);
 
 #endif

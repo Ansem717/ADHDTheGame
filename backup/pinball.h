@@ -11,6 +11,7 @@
 #ifndef PINBALL_H
 #define PINBALL_H
 
+#include "cprocessing.h"
 #include "gameObject.h"
 
 typedef struct {
@@ -21,7 +22,18 @@ typedef struct {
 	float power;
 } Paddle;
 
-void pinballInit(Game g);
-void pinballPlay(Game g);
+typedef struct {
+	CP_Vector p1;
+	CP_Vector p2;
+	CP_Vector p3;
+	CP_Vector center;
+	float area;
+} Triangle;
+
+float	area				(CP_Vector p1, CP_Vector p2, CP_Vector p3);
+int		isInside			(CP_Vector p1, CP_Vector p2, CP_Vector p3, CP_Vector pq);
+
+void	pinballInitVars		(Game* g);
+void	pinball				(Game* g);
 
 #endif

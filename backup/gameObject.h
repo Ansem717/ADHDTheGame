@@ -27,13 +27,11 @@ typedef struct Game {
 	Controller cont;
 	CP_Color col;
 	int active;
-	void (*init)(Game);
-	void (*play)(Game);
+	void (*init)(Game*);
+	void (*play)(Game*);
 } Game;
 
-void	gameManagerInits	(void);
-Game	getGame				(int id);
-void	setGameDimensions	(int id, float x, float y, float w, float h);
-void	setGameColor		(int id, CP_Color c);
+void inits();
+Game* getGame(int id);
 
 #endif //GAME_OBJECT_H

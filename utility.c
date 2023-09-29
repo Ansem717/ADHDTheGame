@@ -8,10 +8,10 @@
 // Copyright © 2020 DigiPen, All rights reserved.
 //---------------------------------------------------------
 
-#include "cprocessing.h"
 #include "utility.h"
+#include <math.h>
 
-CP_Color getColor(COLORS c, int a) {
+CP_Color getColorWithAlpha(COLORS c, int a) {
 	switch (c) {
 	case BLACK:
 		return CP_Color_Create(0, 0, 0, a);
@@ -40,21 +40,43 @@ CP_Color getColor(COLORS c, int a) {
 	}
 }
 
-void fill(CP_Color c) {	CP_Settings_Fill(c); }
+CP_Color getColor(COLORS c) {
+	return getColorWithAlpha(c, 255);
+}
+
+void fill(CP_Color c) { CP_Settings_Fill(c); }
 
 void stroke(CP_Color c, float w) {
 	CP_Settings_Stroke(c);
 	CP_Settings_StrokeWeight(w);
 }
 
-void breakout(Game g) {
-
+Triangle newTriangleFromFloats(float x1, float y1, float x2, float y2, float x3, float y3) {
+	return newTriangleFromCPVectors(CP_Vector_Set(x1, y1), CP_Vector_Set(x2, y2), CP_Vector_Set(x3, y3));
 }
 
-void laneDriver(Game g) {
-
+Triangle newTriangleFromCPVectors(CP_Vector p1, CP_Vector p2, CP_Vector p3) {
+	Triangle t = { 0 };
+	t.p1 = p1;
+	t.p2 = p2;
+	t.p3 = p3;
+	t.center = CP_Vector_Set(
+		(t.p1.x + t.p2.x + t.p3.x) / 3,
+		(t.p1.y + t.p2.y + t.p3.y) / 3
+	);
+	t.area = areaOfThreePoints(t.p1, t.p2, t.p3);
+	return t;
 }
 
-void raftCollector(Game g) {
+float areaOfThreePoints(CP_Vector p1, CP_Vector p2, CP_Vector p3) { return fabs((p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y)) / 2.0); }
 
+int isInsideTriangle(Triangle t, CP_Vector pq) {
+	//Calculate the areas of the three triangles by replacing one vertex with the point in question
+	float A1 = areaOfThreePoints(pq, t.p2, t.p3);
+	float A2 = areaOfThreePoints(t.p1, pq, t.p3);
+	float A3 = areaOfThreePoints(t.p1, t.p2, pq);
+
+	//if the sum of the areas are within area of the original triangle,
+	// we have collision. t.area + 1 for a little margin of acceptance?
+	return (t.area >= A1 + A2 + A3);
 }
