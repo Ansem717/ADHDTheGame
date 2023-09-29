@@ -13,6 +13,14 @@
 
 #include "gameObject.h"
 
+typedef struct {
+	CP_Vector p1;
+	CP_Vector p2;
+	float theta;
+	int triggered;
+	float power;
+} Paddle;
+
 void pinballInit(Game g);
 void pinballPlay(Game g);
 
