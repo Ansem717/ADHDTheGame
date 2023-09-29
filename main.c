@@ -13,8 +13,7 @@
 //---------------------------------------------------------
 
 #include "cprocessing.h"
-
-float WIDTH, HEIGHT, MARGIN, PADDING;
+#include "utility.h"
 
 void gameInit(void) {
 
@@ -31,9 +30,8 @@ void gameInit(void) {
 	CP_Settings_TextAlignment(CP_TEXT_ALIGN_H_CENTER, CP_TEXT_ALIGN_V_MIDDLE);
 	CP_Settings_LineCapMode(CP_LINE_CAP_ROUND);
 
-	CP_Settings_Fill(CP_Color_Create(255,255,255,255));
-	CP_Settings_Stroke(CP_Color_Create(0, 0, 0, 255));
-	CP_Settings_StrokeWeight(2);
+	fill(getColor(LIGHT_GRAY));
+	stroke(getColor(RED), 2);
 	CP_Settings_TextSize(40.0f);
 
 	CP_Settings_Save();
@@ -41,7 +39,7 @@ void gameInit(void) {
 }
 
 void gameUpdate(void) {
-	CP_Graphics_ClearBackground(CP_Color_Create(0, 0, 0, 255));
+	CP_Graphics_ClearBackground(getColor(BLUE));
 	CP_Settings_Translate(MARGIN, 0);
 
 	CP_Graphics_DrawCircle(WIDTH / 2, HEIGHT / 2, 100);

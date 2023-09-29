@@ -5,7 +5,7 @@
 //
 // brief:	header file to supplement main?
 //
-// Copyright © 2020 DigiPen, All rights reserved.
+// Copyright ï¿½ 2020 DigiPen, All rights reserved.
 //---------------------------------------------------------
 
 #ifndef UTILITY_H
