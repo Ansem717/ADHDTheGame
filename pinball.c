@@ -11,6 +11,8 @@
 #include "pinball.h"
 #include "utility.h"
 #include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 CP_Vector bouncerCenter[3];
 float bouncerRadius, bouncerPower;
@@ -41,11 +43,11 @@ void pinballInit(Game g) {
 
 	bouncerTriangle = newTriangleFromFloats(
 		g.x + g.w * 8 / 16,
-		g.y + g.h * 18 / 32,
-		g.x + g.w * 7 / 16,
-		g.y + g.h * 20 / 32,
-		g.x + g.w * 9 / 16,
-		g.y + g.h * 20 / 32
+		g.y + g.h * 16 / 32,
+		g.x + g.w * 13 / 32,
+		g.y + g.h * 19 / 32,
+		g.x + g.w * 19 / 32,
+		g.y + g.h * 19 / 32
 	);
 
 	bouncerRadius = 20;
@@ -56,8 +58,8 @@ void pinballInit(Game g) {
 	\*********/
 
 	paddleRadius = 20;
-	paddlePowerRest = -6;
-	paddlePowerHit = -19;
+	paddlePowerRest = -4;
+	paddlePowerHit = -23;
 	paddleMaxTheta = 120;
 	paddleMinTheta = 60;
 	paddleAccSpeed = 16;
@@ -79,27 +81,27 @@ void pinballInit(Game g) {
 	/*********\
 	| PINBALL |
 	\*********/
-	pinballRadius = 13;
+	pinballRadius = 11;
 	pinballPos = CP_Vector_Zero();
 	pinballVel = CP_Vector_Zero();
 	pinballCol = getColor(GRAY);
 	pinballStroke = getColor(BLACK);
 	pinballAlpha = 255;
-	pinballJerkPower = -5;
-	pinballJerkTimeIncrement = 15;
-	pinballTimeSinceLastJerk = 0;
+	//pinballJerkPower = -5;
+	//pinballJerkTimeIncrement = 15;
+	//pinballTimeSinceLastJerk = 0;
 	pinballTimeOfDeath = 0;
 	pinballRespawnHoldTime = 1;
 
 	pinballPos.x = CP_Random_RangeFloat(bouncerCenter[0].x - pinballRadius, bouncerCenter[1].x + pinballRadius);
 	pinballPos.y = g.y + g.h * 1 / 10;
 
-	pinballTimeSinceLastJerk = CP_System_GetSeconds();
+	//pinballTimeSinceLastJerk = CP_System_GetSeconds();
 
 	/*********\
 	| PHYSICS |
 	\*********/
-	gravity = 0.6f;
+	gravity = 0.9f;
 	terminalVelocity = 13;
 }
 
@@ -150,6 +152,7 @@ void pinballPlay(Game g) {
 		float deltaY = (i == LEFT) ? paddle[i].p2.y - paddle[i].p1.y : paddle[i].p1.y - paddle[i].p2.y;
 		float slope = deltaY / deltaX;
 		float yint = (paddle[i].p1.y - paddleRadius) - (slope * paddle[i].p1.x);
+		float yint2 = (paddle[i].p1.y + paddleRadius) - (slope * paddle[i].p1.x);
 
 		CP_Vector normal = CP_Vector_Normalize(CP_Vector_Set(-deltaY, deltaX));
 		CP_Vector pinballPointClosestToPaddle = CP_Vector_Add(pinballPos, CP_Vector_Scale(normal, pinballRadius));
@@ -159,7 +162,8 @@ void pinballPlay(Game g) {
 
 		if (condition) {
 			//Pinball is aiming for the flat surface of the paddle
-			if (pinballPointClosestToPaddle.y > (slope * pinballPointClosestToPaddle.x) + yint) {
+			if (pinballPointClosestToPaddle.y >= (slope * pinballPointClosestToPaddle.x) + yint &&
+				pinballPointClosestToPaddle.y <= (slope * pinballPointClosestToPaddle.x) + yint2 + pinballRadius) {
 				pinballVel = CP_Vector_Scale(normal, paddle[i].power);
 				pinballPos = CP_Vector_Subtract(pinballPos, normal);
 			}
@@ -170,7 +174,7 @@ void pinballPlay(Game g) {
 			float adjLen = paddle[i].p2.x - pinballPos.x;
 			float theta = atan2f(oppLen, adjLen);
 
-			if (dist < pinballRadius + paddleRadius) {
+			if (dist < pinballRadius*1.3 + paddleRadius) {
 				pinballVel.y = paddle[i].power * sin(theta);
 				pinballVel.x = paddle[i].power * cos(theta);
 				pinballPos.y += paddle[i].power * sin(theta);
@@ -203,18 +207,32 @@ void pinballPlay(Game g) {
 	float xLen = bouncerTriangle.center.x - pinballPos.x;
 	float triTheta = atan2f(yLen, xLen);
 
-	CP_Vector closest = CP_Vector_Add(
-		pinballPos,
-		CP_Vector_Set(
-			pinballRadius * cos(triTheta),
-			pinballRadius * sin(triTheta)
-		)
-	);
+	CP_Vector closest = CP_Vector_Add(pinballPos, CP_Vector_Set(pinballRadius * cos(triTheta), pinballRadius * sin(triTheta)));
+
+	//y = acos((a2 + b2 - c2) / (2ab))
+	//I am measuring the angle between BASE and CENTER to get the TOP RIGHT angle.
+	float a = CP_Vector_Distance(bouncerTriangle.p2, bouncerTriangle.p3); // length of base
+	float b = CP_Vector_Distance(bouncerTriangle.p2, bouncerTriangle.center); // length towards center
+	float c = CP_Vector_Distance(bouncerTriangle.p3, bouncerTriangle.center); // length towards center, opposite
+	float deflectThetaTriangle = acos(  (pow(a,2.0) + pow(b,2.0) - pow(c,2.0)) / (2.0*a*b) ); //Should be the angle to deflect the ball if it hits the RIGHT triangle face
 
 	if (isInsideTriangle(bouncerTriangle, closest)) {
-		pinballVel.y = bouncerPower * sin(triTheta);
-		pinballVel.x = bouncerPower * cos(triTheta);
+		if (isInsideTriangle(newTriangleFromCPVectors(bouncerTriangle.center, bouncerTriangle.p2, bouncerTriangle.p3), closest)) {
+			//The ball hit the BOTTOM of the triangle. 
+			pinballVel.y = bouncerPower * -1;
+			pinballVel.x *= -1;
+		} else if (isInsideTriangle(newTriangleFromCPVectors(bouncerTriangle.center, bouncerTriangle.p1, bouncerTriangle.p2), closest)) {
+			//The ball hit the TOP LEFT of the triangle
+			pinballVel.y = bouncerPower * sin(deflectThetaTriangle);
+			pinballVel.x = bouncerPower * cos(deflectThetaTriangle);
+		} else {
+			//The ball hit the triangle but didn't hit the bottom or the left? it hit the right.
+			pinballVel.y = bouncerPower * sin(deflectThetaTriangle);
+			pinballVel.x = bouncerPower * -cos(deflectThetaTriangle);
+		}
+		pinballPos = CP_Vector_Add(pinballPos, pinballVel);
 	}
+
 
 	//WALL COLLISION
 	if (pinballPos.x < g.x + PADDING / 2 + pinballRadius) {
@@ -235,7 +253,10 @@ void pinballPlay(Game g) {
 	}
 
 	//LOSS CONDITION
-	if (pinballPos.y > g.y + g.h * 13 / 16) {
+	stroke(getColor(RED), 2);
+	CP_Graphics_DrawLine(g.x, g.y + g.h * 53 / 64, g.x + g.w, g.y + g.h * 53 / 64);
+
+	if (pinballPos.y > g.y + g.h * 53 / 64) {
 		//Rounded estimate from lowest point of paddle
 		//Pinball has gone too far
 
@@ -276,14 +297,15 @@ void pinballPlay(Game g) {
 			pinballVel.y = terminalVelocity;
 		}
 
-		//PINBALL JERK
+		/*PINBALL JERK
 		//To prevent the pinball from locking in a perfect angle
 		//The pinball randomly jerks up
 		if (pinballTimeSinceLastJerk + pinballJerkTimeIncrement < CP_System_GetSeconds()) {
 			//Time to jerk!
 			pinballVel.x += pinballJerkPower;
+			pinballVel.y += pinballJerkPower;
 			pinballTimeSinceLastJerk = CP_System_GetSeconds();
-		}
+		}*/
 	}
 
 

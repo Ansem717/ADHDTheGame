@@ -77,6 +77,6 @@ int isInsideTriangle(Triangle t, CP_Vector pq) {
 	float A3 = areaOfThreePoints(t.p1, t.p2, pq);
 
 	//if the sum of the areas are within area of the original triangle,
-	// we have collision. t.area + 1 for a little margin of acceptance?
-	return (t.area >= A1 + A2 + A3);
+	// we have collision. t.area + 5% for a little margin of acceptance?
+	return (t.area*1.05 >= A1 + A2 + A3);
 }
