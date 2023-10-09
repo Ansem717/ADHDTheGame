@@ -3,7 +3,7 @@
 // author:	Andy Malik
 // email:	andy.malik@digipen.edu
 //
-// brief:	lanedriver game
+// brief:	lanedriver game - it's actually inverse frogger
 //
 // Copyright © 2020 DigiPen, All rights reserved.
 //---------------------------------------------------------
